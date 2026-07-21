@@ -12,3 +12,10 @@ venv/
 
 # 模型权重与分词器（体积大，从HuggingFace下载即可）
 model/
+
+# 训练数据（体积大，从HuggingFace下载即可）
+data/
+
+# 编辑器与本地配置
+.vscode/
+.claude/settings.local.json

@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pkill -f \"hf download\")",
+      "Bash(curl -sIL --max-time 20 https://hf-mirror.com/Qwen/Qwen3-0.6B-Base/resolve/main/model.safetensors)",
+      "Bash(curl -s --max-time 20 -r 832569344-832570367 -o /dev/null -w \"HTTP %{http_code}  取到 %{size_download} 字节\\\\n\" https://hf-mirror.com/Qwen/Qwen3-0.6B-Base/resolve/main/model.safetensors)",
+      "Bash(curl -sL --max-time 25 -r 832919267-832920290 -o /tmp/rangetest.bin -w \"HTTP %{http_code} 取到 %{size_download} 字节\\\\n\" https://hf-mirror.com/Qwen/Qwen3-0.6B-Base/resolve/main/model.safetensors)",
+      "Read(//tmp/**)",
+      "Bash(pkill -f \"modelscope download\")",
+      "Bash(cp model/Qwen3-0.6B-Base-hf/.cache/huggingface/download/*.incomplete model/Qwen3-0.6B-Base/model.safetensors)",
+      "Bash(curl -L -C - --retry 20 --retry-delay 3 --retry-all-errors -o model/Qwen3-0.6B-Base/model.safetensors https://hf-mirror.com/Qwen/Qwen3-0.6B-Base/resolve/main/model.safetensors)",
+      "Bash(git fetch *)",
+      "Bash(git ls-tree *)",
+      "Bash(git pull *)",
+      "Bash(.venv/bin/python -c ' *)",
+      "Bash(git add *)"
+    ],
+    "additionalDirectories": [
+      "/tmp"
+    ]
+  }
+}
