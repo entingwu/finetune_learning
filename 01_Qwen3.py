@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from pathlib import Path
 import re
-
+from transformers.models.qwen3 import Qwen3ForCausalLM
 
 def get_device():
     """自动选择设备：CUDA > Apple Silicon MPS > CPU"""
@@ -305,9 +305,23 @@ def compute_rope_params(head_dim, theta_base=10_000, context_length=4096, dtype=
     # 计算每个位置的每组旋转的角度
     # positions: [0,1,2,3.... context_length]
     # positions.unsqueeze(1): (context_length,1) [[0],[1],[2],.... [context_length -1]]
+    # 广播后：（context_length, head_dim/2）
+    # [0, 0, 0]
+    # [1, 1, 1]
+    # [2, 2, 2] 
+
 
     # inv_feq:[100_0000 ^ (0),100_0000 ^ (-2/128),100_0000 ^ (-4/128),,100_0000 ^ (-6/128),100_0000 ^ (-126/128)]
     # inv_freq.unsqueeze(0): (1,head_dim // 2) [[100_0000 ** (-0), 100_0000 ** (-2/head_dim),100_0000 ** (-4/head_dim), ... ]]
+    # 广播后：(context_length, head_dim / 2)
+    # [theta_0, theta_1, theta_2]
+    # [theta_0, theta_1, theta_2]
+    # [theta_0, theta_1, theta_2]
+
+    # 哈达玛积运算
+    # [0* theata_0, 0* theta_1, 0* theta_2]
+    # [1*theta_0, 1*theta_1, 1*theta_2]
+    # [2*theta_0, 2*theta_1, 2*theta_2]
 
     # positions.unsqueeze(1) * inv_freq_unsqueeze(0) 运算时：
     #   1、前者的列会复制成 head_dim /2 列，后者的行，会复制成 context_length行
@@ -316,10 +330,17 @@ def compute_rope_params(head_dim, theta_base=10_000, context_length=4096, dtype=
     # angles: (context_length, head_dim // 2)
     # angles[0,0]=序列中第0个位置处，第0组分量的旋转角度，对应的就是m * theta_i
 
+    # [0* theata_0, 0* theta_1, 0* theta_2]
+    # [1*theta_0, 1*theta_1, 1*theta_2]
+    # [2*theta_0, 2*theta_1, 2*theta_2]
     angles = positions.unsqueeze(1) * inv_freq.unsqueeze(0)  # Shape: (context_length, head_dim // 2)
 
     # 由于是前半部分和后半部分对应索引位置处做旋转，所以此处将angels复制，从而使得旋转的一组二维分量，共享一个angles值
     # head_dim=8时，一行会变成：[angle_0, angle_1, angle_2, angle_3, angle_0, angle_1, angle_2, angle_3]
+
+    # [0* theata_0, 0* theta_1, 0* theta_2,  0* theata_0, 0* theta_1, 0* theta_2]
+    # [1*theta_0, 1*theta_1, 1*theta_2,     1*theta_0, 1*theta_1, 1*theta_2]
+    # [2*theta_0, 2*theta_1, 2*theta_2,     2*theta_0, 2*theta_1, 2*theta_2]
     angles = torch.cat([angles, angles], dim=1)  # Shape: (context_length, head_dim)
     
     
@@ -353,6 +374,7 @@ def apply_rope(x, cos, sin, offset=0):
 
     具体例子：
         假设某个token在某个head上的向量为：
+        假设head_dim = 8 
             x = [x0, x1, x2, x3, x4, x5, x6, x7]
         当前position对应的角度为：
             angles = [a0, a1, a2, a3, a0, a1, a2, a3]
@@ -511,39 +533,8 @@ class Qwen3Tokenizer:
                 s += "\n<think>\n\n</think>\n\n"
         return s
 
-def sample_next_token(logits, temperature=0.6, top_k=20, top_p=0.95):
-    """
-    从最后一个位置的logits中采样下一个token。
-    默认参数取自Qwen3-0.6B的generation_config.json。
-    temperature=0时退化为贪心解码。
-    """
-    if temperature <= 0:
-        return logits.argmax(dim=-1)
-
-    logits = logits.float() / temperature
-
-    # top-k：只保留概率最高的k个token，其余置为-inf
-    if top_k is not None and 0 < top_k < logits.shape[-1]:
-        kth_value = logits.topk(top_k, dim=-1).values[:, -1:]
-        logits = logits.masked_fill(logits < kth_value, -torch.inf)
-
-    probs = torch.softmax(logits, dim=-1)
-
-    # top-p（nucleus）：按概率降序累加，只保留累计概率达到p之前的那批token
-    if top_p is not None and 0 < top_p < 1.0:
-        sorted_probs, sorted_idx = probs.sort(dim=-1, descending=True)
-        cumulative = sorted_probs.cumsum(dim=-1)
-        # 累计概率超过top_p的部分丢弃，但至少保留概率最大的那一个token
-        remove = cumulative - sorted_probs > top_p
-        sorted_probs[remove] = 0.0
-        probs = torch.zeros_like(probs).scatter_(-1, sorted_idx, sorted_probs)
-        probs = probs / probs.sum(dim=-1, keepdim=True)
-
-    return torch.multinomial(probs, num_samples=1).squeeze(-1)
-
-
 def generate_text(input_ids,model:Qwen3Model,tokenizer:Qwen3Tokenizer,max_len:int=100):
-
+    
     # 每次调用时，重置一下current_pos位置的值
     model.reset_kv_cache()
     # 整个自回归生成的过程当中，生成的token数量
@@ -601,74 +592,17 @@ def generate_text(input_ids,model:Qwen3Model,tokenizer:Qwen3Tokenizer,max_len:in
     print(res)
     return res
 
-def load_weights_from_hf(model: Qwen3Model, safetensors_path, cfg):
-    """
-    把HuggingFace官方checkpoint的权重，加载到本文件手写的Qwen3Model中。
-    两边的参数命名不同，需要逐一映射，例如：
-        HF:  model.layers.0.self_attn.q_proj.weight
-        本文件: trf_blocks.0.att.q_proj.weight
-    另外HF的RMSNorm权重叫weight，本文件叫scale。
-    """
-    from safetensors.torch import load_file
-
-    hf_state = load_file(safetensors_path)
-    params = dict(model.named_parameters())
-    name_map = {
-        "model.embed_tokens.weight": "tok_emb.weight",
-        "model.norm.weight": "final_norm.scale",
-    }
-    # tie_word_embeddings为True时，out_head.weight和tok_emb.weight是同一个张量，
-    # checkpoint里的lm_head.weight与embed_tokens.weight内容相同，无需重复加载
-    if not cfg["tie_word_embeddings"]:
-        name_map["lm_head.weight"] = "out_head.weight"
-
-    for i in range(cfg["num_hidden_layers"]):
-        hf, own = f"model.layers.{i}.", f"trf_blocks.{i}."
-        name_map[hf + "input_layernorm.weight"] = own + "norm1.scale"
-        name_map[hf + "post_attention_layernorm.weight"] = own + "norm2.scale"
-        name_map[hf + "self_attn.q_norm.weight"] = own + "att.q_norm.scale"
-        name_map[hf + "self_attn.k_norm.weight"] = own + "att.k_norm.scale"
-        for proj in ("q_proj", "k_proj", "v_proj", "o_proj"):
-            name_map[f"{hf}self_attn.{proj}.weight"] = f"{own}att.{proj}.weight"
-        for proj in ("gate_proj", "up_proj", "down_proj"):
-            name_map[f"{hf}mlp.{proj}.weight"] = f"{own}ff.{proj}.weight"
-
-    loaded = 0
-    with torch.no_grad():
-        for hf_name, own_name in name_map.items():
-            if hf_name not in hf_state:
-                raise KeyError(f"checkpoint中缺少参数: {hf_name}")
-            src, dst = hf_state[hf_name], params[own_name]
-            if src.shape != dst.shape:
-                raise ValueError(
-                    f"形状不匹配 {hf_name} {tuple(src.shape)} -> {own_name} {tuple(dst.shape)}"
-                )
-            # RMSNorm的scale是float32，checkpoint是bfloat16，需要转成目标dtype
-            dst.copy_(src.to(dst.dtype))
-            loaded += 1
-
-    # 检查是否有本地参数没被赋值到
-    missing = set(params) - set(name_map.values())
-    if cfg["tie_word_embeddings"]:
-        missing.discard("out_head.weight")  # 与tok_emb.weight共享，已加载
-    if missing:
-        raise RuntimeError(f"以下参数未加载到权重: {sorted(missing)}")
-    print(f"已加载 {loaded} 个权重张量")
-    return model
-
-
 def main():
     """
     测试Qwen3模型的生成流程。
     注意：这里只初始化了模型结构，没有加载预训练权重，所以输出不代表真实Qwen3效果。
     """
-    device = get_device()
-    print(f"使用设备: {device}")
+    import torch
     tokenizer = Qwen3Tokenizer(tokenizer_file_path=r"model/Qwen3-0.6B/tokenizer.json")
     model = Qwen3Model(QWEN_CONFIG_06_B)
     model.eval()
-    model.to(device)
-    input_ids = torch.tensor(tokenizer.encode("你好，今天天气真好啊")).unsqueeze(0).to(device)
+    model.to("cuda")
+    input_ids = torch.tensor(tokenizer.encode("你好，今天天气真好啊")).unsqueeze(0).to("cuda")
     output = generate_text(input_ids,model,tokenizer)
     
     print(output)
