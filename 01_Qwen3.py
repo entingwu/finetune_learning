@@ -104,6 +104,7 @@ class Qwen3Model(nn.Module):
         for i, block in enumerate(self.trf_blocks):
             # prefill阶段，cache传进来的是空字典{}；decode阶段，cache里已经有每一层的KV Cache
             blk_cache = cache.get(i) if cache is not None else None
+            # x [batch_size=1, num_tokens=7, hidden_size=1024]
             x, new_blk_cache = block(x, mask, self.cos, self.sin,
                                      start_pos=pos_start,
                                      cache=blk_cache)
@@ -111,8 +112,9 @@ class Qwen3Model(nn.Module):
                 # 对字典中每一层赋值K和V的Cache
                 cache[i] = new_blk_cache
 
-        # 输出前先进行层归一化
+        # 输出前先进行层归一化 [0,1]
         x = self.final_norm(x)
+
         # 输出层
         # logits.shape: [batch_size, num_tokens, vocab_size]
         logits = self.out_head(x.to(self.cfg["torch_dtype"]))
@@ -600,11 +602,12 @@ def main():
     注意：这里只初始化了模型结构，没有加载预训练权重，所以输出不代表真实Qwen3效果。
     """
     import torch
+    device = get_device()
     tokenizer = Qwen3Tokenizer(tokenizer_file_path=r"model/Qwen3-0.6B/tokenizer.json")
     model = Qwen3Model(QWEN_CONFIG_06_B)
     model.eval()
-    model.to("cuda")
-    input_ids = torch.tensor(tokenizer.encode("你好，今天天气真好啊")).unsqueeze(0).to("cuda")
+    model.to(device)
+    input_ids = torch.tensor(tokenizer.encode("你好，今天天气真好啊")).unsqueeze(0).to(device)
     output = generate_text(input_ids,model,tokenizer)
     
     print(output)

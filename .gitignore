@@ -16,6 +16,9 @@ model/
 # 训练数据（体积大，从HuggingFace下载即可）
 data/
 
+# TensorBoard 训练日志（本机产物，含主机名/进程号）
+logs/
+
 # 编辑器与本地配置
 .vscode/
 .claude/settings.local.json

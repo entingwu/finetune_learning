@@ -202,7 +202,7 @@ def cosine_decay(current_batch,total_batch,warmup_ratio,lr):
 
 
 
-def eval_model(model,sft_config:SFTConfig):
+def eval_model(model,sft_config:SFTConfig, device):
 
     model.eval()
 
@@ -220,7 +220,7 @@ def eval_model(model,sft_config:SFTConfig):
             padding_length = max_length - len(sample)
             sample.extend([tokenizer.pad_token_id] * padding_length)
         
-        data_tensor = torch.tensor(current_batch_data, dtype=torch.long).to("cuda")
+        data_tensor = torch.tensor(current_batch_data, dtype=torch.long).to(device)
         # input_ids:
         input_ids = data_tensor[:,:-1]
         labels = data_tensor[:,1:]
@@ -255,8 +255,9 @@ def train(sft_config:SFTConfig):
     # 初始化模型
     from transformers import AutoModelForCausalLM
     from torch.optim.adamw import AdamW # 对于大模型微调，一般使用AdamW
-    model = AutoModelForCausalLM.from_pretrained("model/Qwen3-0.6B-Base/")
-    model.to("cuda")
+    device = get_device()
+    model = AutoModelForCausalLM.from_pretrained("model/Qwen3-0.6B-Base/", dtype=torch.float32)
+    model.to(device)
     model.train()
     optimizer = AdamW(model.parameters(), lr=sft_config.lr)
     loss_list = []
@@ -280,7 +281,7 @@ def train(sft_config:SFTConfig):
             padding_length = max_length - len(sample)
             sample.extend([tokenizer.pad_token_id] * padding_length)
         
-        data_tensor = torch.tensor(current_batch_data, dtype=torch.long).to("cuda")
+        data_tensor = torch.tensor(current_batch_data, dtype=torch.long).to(device)
         # input_ids:
         input_ids = data_tensor[:,:-1]
         labels = data_tensor[:,1:]
@@ -314,7 +315,7 @@ def train(sft_config:SFTConfig):
         should_eval = current_batch % sft_config.eval_iter == 0 
         should_log = current_batch % sft_config.log_iter  == 0
         if should_eval:
-            average_loss = eval_model(model,sft_config)
+            average_loss = eval_model(model,sft_config, device)
             writer.add_scalar("eval/loss",average_loss,current_batch)
             model.train()
 
@@ -337,8 +338,17 @@ def train(sft_config:SFTConfig):
 
 
 def main():
-    sft_config = SFTConfig(train_data_size=200, batch_size=1)
+    sft_config = SFTConfig(train_data_size=100, eval_data_size=100, batch_size=2) # 20000, batch_size=4
     train(sft_config=sft_config)
+
+def get_device():
+  if torch.cuda.is_available():
+    device = torch.device('cuda')
+  elif torch.backends.mps.is_available():
+    device = torch.device('mps')
+  else:
+    device = torch.device('cpu')
+  return device
 
 
 if __name__=="__main__":

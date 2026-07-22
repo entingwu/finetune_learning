@@ -19,7 +19,15 @@
       "Bash(git stash *)",
       "Bash(git merge *)",
       "Bash(git checkout *)",
-      "Bash(git commit -q -m '本地开发：03 设备兼容修复\\(mps/cuda\\)，02_sft 保留本地 eval/tensorboard/padding_mask，新增 04_dpo *)"
+      "Bash(git commit -q -m '本地开发：03 设备兼容修复\\(mps/cuda\\)，02_sft 保留本地 eval/tensorboard/padding_mask，新增 04_dpo *)",
+      "Bash(uv run *)",
+      "Bash(sysctl -n hw.memsize)",
+      "Bash(sysctl -n machdep.cpu.brand_string)",
+      "Bash(python -c ' *)",
+      "Bash(python 01_debug_shapes.py)",
+      "Bash(python 01_Qwen3.py)",
+      "Bash(git rev-list *)",
+      "Bash(git check-ignore *)"
     ],
     "additionalDirectories": [
       "/tmp"

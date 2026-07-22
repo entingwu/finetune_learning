@@ -13,12 +13,24 @@
 from argparse import ArgumentParser
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from torch import Tensor
+import torch
+
+def get_device():
+  if torch.cuda.is_available():
+    device = torch.device('cuda')
+  elif torch.backends.mps.is_available():
+    device = torch.device('mps')
+  else:
+    device = torch.device('cpu')
+  return device
+
 parser = ArgumentParser()
 # 添加参数
 parser.add_argument("--model_path",type=str,help="需要加载的模型路径")
 parser.add_argument("--prompt",type=str,help="需要模型处理的prompt")
 # 解析命令行传过来的参数
 args = parser.parse_args()
+device = get_device()
 
 model_path  = args.model_path
 prompt = args.prompt
@@ -26,7 +38,7 @@ model = AutoModelForCausalLM.from_pretrained(model_path,device_map = "auto")
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 
 message_list = [{"role":"user","content":prompt}]
-input_tensor : Tensor= tokenizer.apply_chat_template(message_list, tokenize=True, add_generation_prompt=True,return_tensors = "pt")["input_ids"].to(model.device)
+input_tensor : Tensor= tokenizer.apply_chat_template(message_list, tokenize=True, add_generation_prompt=True,return_tensors = "pt")["input_ids"].to(device)
 
 # result.shape: batch_size,num_tokens(包含输入的input_ids和新生成的token_ids)
 result: Tensor= model.generate(input_tensor,max_new_tokens = 500)
