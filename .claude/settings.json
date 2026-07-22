@@ -13,7 +13,13 @@
       "Bash(git ls-tree *)",
       "Bash(git pull *)",
       "Bash(.venv/bin/python -c ' *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -q -m ' *)",
+      "Bash(~/miniconda3/envs/finetune_qwen/bin/modelscope download *)",
+      "Bash(git stash *)",
+      "Bash(git merge *)",
+      "Bash(git checkout *)",
+      "Bash(git commit -q -m '本地开发：03 设备兼容修复\\(mps/cuda\\)，02_sft 保留本地 eval/tensorboard/padding_mask，新增 04_dpo *)"
     ],
     "additionalDirectories": [
       "/tmp"
