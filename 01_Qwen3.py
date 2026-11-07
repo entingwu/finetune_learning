@@ -554,6 +554,7 @@ def generate_text(input_ids,model:Qwen3Model,tokenizer:Qwen3Tokenizer,max_len:in
         # input_ids.shape: batch_size, seq_len 
         # model(input_ids,cache=kv_cache): 走模型内部的forward方法。
         output_logits = model(input_ids,cache=kv_cache)
+        print('output_logits', output_logits.shape)
         
         # 取最后一个token的logits
         logits = output_logits[:,-1,:]
@@ -608,7 +609,9 @@ def main():
     model.eval()
     model.to(device)
     input_ids = torch.tensor(tokenizer.encode("你好，今天天气真好啊")).unsqueeze(0).to(device)
+    print('##ids', input_ids)
     output = generate_text(input_ids,model,tokenizer)
+    print('##output', output)
     
     print(output)
 

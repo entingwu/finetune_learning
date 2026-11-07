@@ -207,7 +207,7 @@ def compute_log_probs(logits, labels, assistant_mask):
     # masked_label_token_log_prob.shape: batch_size, num_tokens
     masked_label_token_log_prob  = assistant_mask * label_token_log_prob
 
-    # 、对 对数概率做相加，获取模型输出整个回答的对数概率
+    # 4、对 对数概率做相加，获取模型输出整个回答的对数概率
     log_probs = masked_label_token_log_prob.sum(dim = -1)
 
     return log_probs
@@ -530,7 +530,7 @@ def train(dpo_config:DPOConfig):
 
 
 def main():
-    dpo_config = DPOConfig(train_data_size=20000, batch_size=1)
+    dpo_config = DPOConfig(train_data_size=20000, batch_size=1) # 20000 1
     train(dpo_config=dpo_config)
 
 

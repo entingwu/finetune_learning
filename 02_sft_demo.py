@@ -8,7 +8,7 @@ from dataclasses import dataclass
 class SFTConfig:
     train_data_size: int  = 10000
     eval_data_size: int = 500
-    lr: float = 3e-5 
+    lr: float = 3e-5
     batch_size: int = 4
     warmup_ratio: float = 0.1
     save_dir: str = "./finetuned/02_sft_demo"
@@ -71,8 +71,8 @@ def create_answer_mask(labels,tokenizer:PreTrainedTokenizerFast):
         # 3.2、解析获得user_ends和assistant_ends
         user_ends,assistant_ends = _parse_conversation_turns(eos_position)
         # 3.3、设置answer mask
-        _set_answer_masks(answer_mask[idx],user_ends,assistant_ends)   
-    
+        _set_answer_masks(answer_mask[idx],user_ends,assistant_ends)
+
     # 4、结果返回:
     return answer_mask
 
@@ -121,7 +121,7 @@ def _set_answer_masks(mask,user_ends,assistant_ends):
     假设第一个eos_token_id index为10，第二个为15，第三个为20，第四个为25
     那么user_turns:[10,20]，assistant_ends:[15,25]
 
-    
+
     要想获取到assistant的回答的起始位置，就需要跳过<|im_end|>, \n, <|im_start|>,assistant , \n 这5个token
     要想获取到assistant的回答的结束位置，需要将<|im_end|>也包括进去，又因为列表切片是左闭右开的，所以需要向后移动一位
     """
@@ -140,9 +140,9 @@ def _set_answer_masks(mask,user_ends,assistant_ends):
             answer_start = user_end + 5
             answer_end = assistant_end + 1
             mask[answer_start:answer_end] = 1
-        
+
         # 处理最后一轮被截断的助手回答
-        last_user_end = user_ends[-1] 
+        last_user_end = user_ends[-1]
         last_answer_start = last_user_end + 5
         mask[last_answer_start:] = 1
 
@@ -194,7 +194,7 @@ def cosine_decay(current_batch,total_batch,warmup_ratio,lr):
         # progress: 表示衰减过程，从0到1
         progress = (current_batch - warmup_batch)  / ( total_batch -warmup_batch)
         # progress从0到1的过程，cos从最大值，降到最小值
-        # cos(π * progress)，从1到-1 
+        # cos(π * progress)，从1到-1
         # （cos(π * progress)+1）*0.5 ，从1到0，表示衰减的程度
         decay_level = (np.cos(np.pi * progress) + 1) * 0.5
 
@@ -219,7 +219,7 @@ def eval_model(model,sft_config:SFTConfig, device):
         for sample in current_batch_data:
             padding_length = max_length - len(sample)
             sample.extend([tokenizer.pad_token_id] * padding_length)
-        
+
         data_tensor = torch.tensor(current_batch_data, dtype=torch.long).to(device)
         # input_ids:
         input_ids = data_tensor[:,:-1]
@@ -231,7 +231,7 @@ def eval_model(model,sft_config:SFTConfig, device):
         batch_loss = compute_loss(logits=logits, labels=labels,assistant_mask=assistant_mask )
 
         all_batch_loss.append(batch_loss.item())
-    
+
     average_loss = sum(all_batch_loss) / len(all_batch_loss)
 
     return average_loss
@@ -261,8 +261,8 @@ def train(sft_config:SFTConfig):
     model.train()
     optimizer = AdamW(model.parameters(), lr=sft_config.lr)
     loss_list = []
-    
-    
+
+
     # todo: 构建一个获取数据的方法
     # data: 第一个list，是所有数据，第二个list，是一条数据的message_list
     data: list[list] = get_train_data(sft_config)
@@ -272,7 +272,7 @@ def train(sft_config:SFTConfig):
     writer = SummaryWriter(log_dir=sft_config.log_dir)
     progress_bar = tqdm.tqdm(total=total_batch)
     for current_batch in range(total_batch):
-        # data[0:4], data[4:8], data[8:12] ... 
+        # data[0:4], data[4:8], data[8:12] ...
         current_batch_data = data[current_batch*sft_config.batch_size : (current_batch+1) * sft_config.batch_size]
 
         max_length = max([len(sample) for sample in current_batch_data])
@@ -280,8 +280,9 @@ def train(sft_config:SFTConfig):
         for sample in current_batch_data:
             padding_length = max_length - len(sample)
             sample.extend([tokenizer.pad_token_id] * padding_length)
-        
+
         data_tensor = torch.tensor(current_batch_data, dtype=torch.long).to(device)
+
         # input_ids:
         input_ids = data_tensor[:,:-1]
         labels = data_tensor[:,1:]
@@ -312,7 +313,7 @@ def train(sft_config:SFTConfig):
         optimizer.zero_grad()
 
 
-        should_eval = current_batch % sft_config.eval_iter == 0 
+        should_eval = current_batch % sft_config.eval_iter == 0
         should_log = current_batch % sft_config.log_iter  == 0
         if should_eval:
             average_loss = eval_model(model,sft_config, device)
@@ -338,7 +339,7 @@ def train(sft_config:SFTConfig):
 
 
 def main():
-    sft_config = SFTConfig(train_data_size=100, eval_data_size=100, batch_size=2) # 20000, batch_size=4
+    sft_config = SFTConfig(train_data_size=200, eval_data_size=200, batch_size=1) # 20000, batch_size=4
     train(sft_config=sft_config)
 
 def get_device():

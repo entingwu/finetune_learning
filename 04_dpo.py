@@ -30,6 +30,7 @@ def get_train_data(dpo_config:DPOConfig):
     train_data = train_data.select(range(dpo_config.train_data_size))
     chosen_result = []
     rejected_result = []
+    print(train_data)
     for i in range(dpo_config.train_data_size):
         # 1. 对chosen处理
         message_list = train_data[i]["chosen"]
@@ -359,6 +360,7 @@ def train(dpo_config:DPOConfig):
     # data: 第一个list，是所有数据，第二个list，是一条数据的message_list
     chosen_data, rejected_data = get_train_data(dpo_config)
     total_batch = (len(chosen_data) + dpo_config.batch_size - 1)  // dpo_config.batch_size
+    return
 
     # 构建tensorsorboard的writer对象，和tqdm对象
     writer = SummaryWriter(log_dir=dpo_config.log_dir)
