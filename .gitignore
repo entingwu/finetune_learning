@@ -26,3 +26,6 @@ tf-logs/
 *.log
 outputs/
 .idea/
+
+# 压测原始数据库（体积大，汇总结果见同目录 json）
+vllm-monitor/perf_results/**/benchmark_data.db

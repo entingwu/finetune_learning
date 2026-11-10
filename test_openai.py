@@ -8,7 +8,7 @@ client = OpenAI(
 
 # 多轮对话
 response = client.chat.completions.create(
-    model="Qwen3-8B",# 指定模型,必须与启动vllm时指定的名字一致
+    model="qwen3",# 指定模型,必须与启动vllm时指定的名字一致
     messages=[
         {"role": "user", "content": "量子计算对RSA加密的威胁与应对策略,请展示你的推理过程在think标签中"}
     ],
@@ -17,4 +17,4 @@ response = client.chat.completions.create(
     }
 )
 
-# print(response)
+print(response.choices[0].message.content)

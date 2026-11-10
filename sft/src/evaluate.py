@@ -93,13 +93,13 @@ if __name__ == "__main__":
   # print('LoRA微调评测结果', accuracy)
 
   # QLora微调: 0.6126429051782112
-  model = AutoModelForCausalLM.from_pretrained(str(BASE_PATH / "outputs" / "Qlora" / "merged"), dtype="auto", device_map="auto")
-  tokenizer = AutoTokenizer.from_pretrained(str(BASE_PATH / "outputs" / "Qlora" / "merged"))
-  accuracy = evaluate(model, tokenizer)
-  print('QLoRA微调评测结果', accuracy)
-
-  # ZeRO: 0.657
-  # model = AutoModelForCausalLM.from_pretrained(str(BASE_PATH / "outputs" / "zero" / "checkpoint-720"), device_map="auto")
-  # tokenizer = AutoTokenizer.from_pretrained(str(BASE_PATH / "outputs" / "zero" / "checkpoint-720"))
+  # model = AutoModelForCausalLM.from_pretrained(str(BASE_PATH / "outputs" / "Qlora" / "merged"), dtype="auto", device_map="auto")
+  # tokenizer = AutoTokenizer.from_pretrained(str(BASE_PATH / "outputs" / "Qlora" / "merged"))
   # accuracy = evaluate(model, tokenizer)
-  # print('ZeRO训练评测结果', accuracy)
+  # print('QLoRA微调评测结果', accuracy)
+
+  # ZeRO: 0.6526563550773369
+  model = AutoModelForCausalLM.from_pretrained(str(BASE_PATH / "outputs" / "zero" / "checkpoint-720"), device_map="auto")
+  tokenizer = AutoTokenizer.from_pretrained(str(BASE_PATH / "outputs" / "zero" / "checkpoint-720"))
+  accuracy = evaluate(model, tokenizer)
+  print('ZeRO训练评测结果', accuracy)

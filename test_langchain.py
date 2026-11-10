@@ -2,7 +2,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 
 llm = ChatOpenAI(
-    model="Qwen3-8B",
+    model="qwen3",
     base_url="http://localhost:8000/v1/",
     api_key="none",
     temperature=0)

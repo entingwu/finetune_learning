@@ -1,0 +1,142 @@
+agent_config: null
+analysis_report: false
+api_key: '**********'
+api_url: http://127.0.0.1:8000/v1/chat/completions
+chat_template: null
+collect_perf: true
+dataset_args: {}
+dataset_dir: /Users/entingwu/.cache/modelscope/hub/datasets
+dataset_hub: modelscope
+datasets:
+- mmlu_pro
+debug: false
+dry_run: false
+enable_progress_tracker: false
+eval_backend: Native
+eval_batch_size: 8
+eval_config: null
+eval_type: openai_api
+evalscope_version: 1.14.1
+evaluation_identity:
+  benchmarks:
+    mmlu_pro:
+      cache_source: null
+      evaluation_version: v1.0
+      fingerprint: sha256:1d48d70f2ddf927c5faff210a6c7ab6d88ebe2a0d0173ac665b12b13d951b1f0
+      review_pending: false
+  schema_version: 1
+generation_config:
+  batch_size: 8
+  extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  max_tokens: 512
+  temperature: 0.0
+ignore_errors: false
+judge:
+  aggregation: mean
+  contract:
+    prompt_template: null
+    score_mapping: null
+    score_type: pattern
+    system_prompt: null
+  min_valid_judges: 1
+  models: []
+  position_swap: auto
+  repeats: 1
+  strategy: auto
+limit: 3
+model: Qwen3-0.6B
+model_args: {}
+model_id: Qwen3-0.6B
+model_task: text_generation
+no_timestamp: true
+repeats: 1
+rerun_review: false
+resolved_benchmarks:
+  mmlu_pro:
+    aggregation: mean
+    dataset_hub: modelscope
+    dataset_id: TIGER-Lab/MMLU-Pro
+    dataset_revision: null
+    default_subset: default
+    eval_split: test
+    extra_params: {}
+    few_shot_num: 5
+    few_shot_prompt_template: 'The following are multiple choice questions (with answers)
+      about {subject}. Think step by step and then finish your answer with ''ANSWER:
+      [LETTER]'' (without quotes) where [LETTER] is the correct letter choice.
+
+
+      {examples}
+
+      Answer the following multiple choice question. The last line of your response
+      should be of the following format: ''ANSWER: [LETTER]'' (without quotes) where
+      [LETTER] is one of {letters}. Think step by step before answering.
+
+
+      Question:
+
+      {question}
+
+      Options:
+
+      {choices}
+
+      '
+    few_shot_random: false
+    filters: null
+    max_image_bytes: null
+    metric_list:
+    - accuracy
+    name: mmlu_pro
+    primary_metric: null
+    prompt_template: 'Answer the following multiple choice question. The last line
+      of your response should be of the following format: ''ANSWER: [LETTER]'' (without
+      quotes) where [LETTER] is one of {letters}. Think step by step before answering.
+
+
+      Question:
+
+      {question}
+
+      Options:
+
+      {choices}
+
+      '
+    query_template: null
+    sandbox_config: {}
+    shuffle: false
+    shuffle_choices: false
+    subset_list:
+    - computer science
+    - math
+    - chemistry
+    - engineering
+    - law
+    - biology
+    - health
+    - physics
+    - business
+    - philosophy
+    - economics
+    - other
+    - psychology
+    - history
+    system_prompt: null
+    train_split: validation
+sandbox:
+  default_config: {}
+  enabled: false
+  engine: docker
+  manager_config: {}
+  pool_size: null
+sandbox_manager_config: {}
+sandbox_type: docker
+seed: 42
+stream: null
+timeout: null
+use_cache: null
+use_sandbox: false
+work_dir: ./day7_eval/mmlu_pro_nothink
